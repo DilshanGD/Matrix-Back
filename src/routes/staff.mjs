@@ -35,7 +35,7 @@ router.post("/staff/staff-login", checkSchema(staffLoginValidation), async (req,
             return res.status(404).send("Invalid Password");
 
         const token = jwt.sign(
-            {username: findStaff.username, full_name: findStaff.full_name, profile_pic: findStaff.profile_pic, type: "staff" },
+            {username: findStaff.username, full_name: findStaff.full_name, profile_pic: findStaff.profile_pic, type: "staff", sub_id: findStaff.sub_id },
             process.env.JWT_SECRET,
             {expiresIn: "1h"}
         );
@@ -77,23 +77,15 @@ router.patch("/staff/staff-profile-update", isStaffAuth, checkSchema(staffUpdate
                 return res.status(409).send("Already-Registered-email");
             }
         }
-        
-        // Checks the subject is valid or not
-        if(data.sub_id){
-            const subExist = await Models.Subject.count({ where: { sub_id: data.sub_id }});
-            if(!subExist){                          
-                return res.status(404).send("Invalid-Subject");
-                // res.redirect("/staff/staff-update");  // Forward to staff-update page
-            }
-        }
 
         // Updates staff profile
         const [affectedRows, [savedStaff]] = await Models.Staff.update({
             full_name: data.full_name,
             email: data.email,
-            sub_id: data.sub_id,
+            sub_id: req.user.sub_id,
             gender: data.gender,
-            profile_pic: data.profile_pic
+            profile_pic: data.profile_pic,
+            biography: data.biography
         },{
             where: {
                 username: req.user.username
@@ -151,56 +143,6 @@ router.patch("/staff/staff-profile-update", isStaffAuth, checkSchema(staffUpdate
             }
         }
 
-        // Update or Create home phone number
-        // if(data.phoneHome){
-        //     const [staffHome, [createdHome]] = await Models.Staff_Phone.findOrCreate({
-        //         where: {
-        //             username: req.user.username,
-        //             phoneType: "H"
-        //         },
-        //         defaults: { 
-        //             username: req.user.username, 
-        //             phone: data.phoneHome,
-        //             phoneType: "H" 
-        //         }
-        //     });
-        //     if (!createdHome) {
-        //         await Models.Staff_Phone.update({
-        //             phone: data.phoneHome
-        //         },{
-        //             where: {
-        //                 username: req.user.username,
-        //                 phoneType: "H"
-        //             }
-        //         });
-        //     }
-        // }
-
-        // Update or Create mobile phone number
-        // if(data.phoneMobile){
-        //     const [staffMobile, [createdMobile]] = await Models.Staff_Phone.findOrCreate({
-        //         where: {
-        //             username: req.user.username,
-        //             phoneType: "M"
-        //         },
-        //         defaults: { 
-        //             username: req.user.username, 
-        //             phone: data.phoneMobile,
-        //             phoneType: "M" 
-        //         }
-        //     });
-        //     if (!createdMobile) {
-        //         await Models.Staff_Phone.update({
-        //             phone: data.phoneMobile
-        //         },{
-        //             where: {
-        //                 username: req.user.username,
-        //                 phoneType: "M"
-        //             }
-        //         });
-        //     }
-        // }
-
         return res.status(200).send(savedStaff);
         // res.redirect("/staff/staff-dashboard");  // Forward to staff home dashboard
     } catch(err) {
@@ -213,13 +155,21 @@ router.patch("/staff/staff-profile-update", isStaffAuth, checkSchema(staffUpdate
 // Staff profile view API
 router.get("/staff/staff-profile", isStaffAuth, async (req, res) => { 
     try {
-        const findStaff = await Models.Staff.findOne({ where: { username: req.user.username }});  // Load relevent table
-        return res.status(200).send(findStaff);
+        const findStaff = await Models.Staff.findOne({ where: { username: req.user.username }});  // Load relevant table
+        const findStaffPhone = await Models.Staff_Phone.findAll({ where: { username: req.user.username }});  // Load relevant table
+
+        const response = {
+            staff: findStaff,
+            phones: findStaffPhone
+        };
+
+        return res.status(200).json(response);  // Properly formatting the response
     } catch (err) {
         //console.log(err.message);
         return res.status(400).send(err.message);
     }
 });
+
 
 // Update staff password api
 router.patch("/staff/new-password", isStaffAuth, checkSchema(staffPWDValidation), async (req, res) => {
@@ -469,9 +419,9 @@ router.patch('/staff/qualification-update', isStaffAuth, checkSchema(staffQualif
 
 // Add new Tips(mini videos) 
 router.post('/staff/add-tips', isStaffAuth, checkSchema(tipsValidation), async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });  // Return validation errors
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+        return res.status(400).json({ errors: result.array() });  // Return validation errors
     }
 
     const data = matchedData(req);  // Grab data posted from client side.
@@ -479,7 +429,7 @@ router.post('/staff/add-tips', isStaffAuth, checkSchema(tipsValidation), async (
 
     try {
         const subject = await Models.Subject.findOne({      // Check if the subject exists in the database
-            where: { sub_id: data.sub_id }
+            where: { sub_id: req.user.sub_id }
         });
         if (!subject) {
             return res.status(404).json({ error: "Subject not found" });
@@ -487,13 +437,12 @@ router.post('/staff/add-tips', isStaffAuth, checkSchema(tipsValidation), async (
 
         const newTip = await Models.Tip.create({          // Create the new tip 
             title: data.title,
-            sub_id: data.sub_id,
+            sub_id: req.user.sub_id,
             source: data.source,
             username: username
         });
 
-        return res.status(201).json(newTip); 
-
+    return res.status(201).json(newTip); 
     } catch (error) {
         console.error("Error is:", error);
         return res.status(500).send({error : error});
@@ -502,40 +451,33 @@ router.post('/staff/add-tips', isStaffAuth, checkSchema(tipsValidation), async (
 
 // Add new Books
 router.post("/staff/add-books", isStaffAuth, checkSchema(booksValidation), async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+        return res.status(400).json({ errors: result.array() });
     }
 
     const data = matchedData(req); 
     const username = req.user.username;     
 
     try {
-        const subject = await Models.Subject.findOne({     // Check if the subject exists
-            where: { sub_id: data.sub_id },
-        });
-        if (!subject) {
-            return res.status(404).json({ error: "Subject not found" });
-        }
-
         const lastBook = await Models.Book.findOne({        // Get the last book's reg_no for the given sub_id
-            where: { sub_id: data.sub_id },
+            where: { sub_id: req.user.sub_id },
             order: [['book_id', 'DESC']],                   // Ordering by reg_no in descending order
         });
 
         // Generate the new book_id using extractBookId
         let newBookId;
         if (lastBook && lastBook.book_id) {
-            const lastBookNo = extractBookId(lastBook.book_id, data.sub_id);
-            newBookId = bookId(data.sub_id, lastBookNo);
+            const lastBookNo = extractBookId(lastBook.book_id, req.user.sub_id);
+            newBookId = bookId(req.user.sub_id, lastBookNo);
         } else {
-            newBookId = bookId(data.sub_id, 0); // Generate a new book ID when no books exist for the subject
+            newBookId = bookId(req.user.sub_id, 0); // Generate a new book ID when no books exist for the subject
         }
 
         const newBook = await Models.Book.create({  // Create the new book entry
             book_id: newBookId,
             title: data.title,
-            sub_id: data.sub_id,
+            sub_id: req.user.sub_id,
             author: data.author,
             username: username,      
             image: data.image,
@@ -552,29 +494,32 @@ router.post("/staff/add-books", isStaffAuth, checkSchema(booksValidation), async
 
 // Add new Blog
 router.post("/staff/add-blogs", isStaffAuth, checkSchema(blogValidation), async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+    // Validate request data
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+        return res.status(400).json({ errors: result.array() }); // Fixed 'errors.array()' to 'result.array()'
     }
 
+    // Extract matched data and username
     const data = matchedData(req); 
-    const username = req.user.username;      
+    const username = req.user.username; // Ensure 'isStaffAuth' middleware attaches user data to 'req.user'
 
     try {
-        const newBlog = await Models.Blog.create({  // Create the new blog
+        // Create the new blog entry
+        const newBlog = await Models.Blog.create({
             title: data.title,
-            username: username,        // After set login -> username: username  and remove username from validation
+            username: username, // Set username from authenticated user
             image: data.image,
-            content: data.content
+            content: data.content,
         });
 
-        return res.status(201).json(newBlog); // Return the newly created book
-
+        return res.status(201).json(newBlog); // Return the created blog
     } catch (error) {
-        console.error("Error is:", error);
-        return res.status(500).json({ error: error });
+        console.error("Error creating blog:", error);
+        return res.status(500).json({ error: "An error occurred while creating the blog. Please try again." });
     }
 });
+
 
 // Add new Class
 router.post("/staff/class-registration", isStaffAuth, checkSchema(classValidation), async (req, res) => {
@@ -603,15 +548,6 @@ router.post("/staff/class-registration", isStaffAuth, checkSchema(classValidatio
             return res.status(409).send("Class already exists");
         }
 
-        const subjectExist = await Models.Subject.count({    // Check if the sub_id exists in the Subjects table
-            where: {
-                sub_id: data.sub_id
-            }
-        });
-        if (!subjectExist) {
-            return res.status(404).send("Subject ID does not exist");
-        }
-
         const batchExist = await Models.Batch.count({    // Check if the batch_id exists in the Batch table
             where: {
                 batch_id: data.batch_id
@@ -623,7 +559,7 @@ router.post("/staff/class-registration", isStaffAuth, checkSchema(classValidatio
 
         // Create the new class record
         const savedClass = await Models.Class.create({
-            sub_id: data.sub_id,
+            sub_id: req.user.sub_id,
             title: data.title,
             username: req.user.username,
             type: data.type,                // Theory, Revision, Paper
@@ -933,12 +869,13 @@ router.get("/staff/timetable", isStaffAuth, async (req, res) => {
 });
 
 
-// Remove account
-
 // Remove qualification
 
-// Student View                                  <-- Based on the stream, batch, class
+// Remove blog
 
-// Staff dashboard
+// Remove book
+
+// Remove tips
+
 
 export default router;

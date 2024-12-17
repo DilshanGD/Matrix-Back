@@ -185,7 +185,6 @@ router.post("/admin/class-registration", isAdminAuth, checkSchema(classValidatio
                 title: data.title
             }
         });
-
         if (classExist) {
             return res.status(409).send("Class already exists");
         }
@@ -669,31 +668,14 @@ router.post("/admin/staff-individual", isAdminAuth, checkSchema(individualStaffV
 
 // Admin dashboard
 
-// Student View                                  <-- Based on the stream, batch, class
+// View subjects  -> Delete button
 
-// Change student status api
+// View streams  -> Delete button
 
-// Frontend details
-
-// View subjects
-
-// View streams
-
-// View batch
-
-// Update subjects
-
-// Update streams
-
-// Update batch
-
-// Remove admin
+// View batch -> Delete button
 
 // Remove staff
 
-// Remove student
-
-// Remove class
 
 
 

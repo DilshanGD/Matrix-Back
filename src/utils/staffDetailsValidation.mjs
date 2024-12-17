@@ -85,18 +85,6 @@ export const staffUpdateValidation = {
             errorMessage: "emailEmpty"
         }
     },
-    sub_id: {
-        isLength: {
-            options: {
-                min: 3,
-                max: 8
-            },
-            errorMessage: "subLenght"
-        },
-        notEmpty: {
-            errorMessage: "subEmpty"
-        }
-    },
     gender: {
         notEmpty: {
             errorMessage: "genderEmpty"
@@ -135,6 +123,18 @@ export const staffUpdateValidation = {
         optional: true,
         isString: {
             errorMessage: "picString"
+        }
+    },
+    biography: {
+        notEmpty: {
+            errorMessage: "biographyEmpty"
+        },
+        isString: {
+            errorMessage: "biographyString"
+        },
+        isLength: {
+            options: { max: 1000 }, // Optional: limit the length if needed
+            errorMessage: "biographyLength"
         }
     }
 };
@@ -231,17 +231,6 @@ export const staffQualificationUpdateValidation = {
 
 // Tips(mini video) validation
 export const tipsValidation = {
-    username: {
-        isLength: {
-            options: {
-                min: 3
-            },
-            errorMessage: "usernameLength"
-        },
-        notEmpty: {
-            errorMessage: "usernameEmpty"
-        }
-    },
     title: {
         isLength: {
             options: {
@@ -255,21 +244,6 @@ export const tipsValidation = {
         },
         isString: {
             errorMessage: "titleString"
-        }
-    },
-    sub_id: {
-        isLength: {
-            options: {
-                min: 3,
-                max: 8
-            },
-            errorMessage: "subLength"
-        },
-        notEmpty: {
-            errorMessage: "subEmpty"
-        },
-        isString: {
-            errorMessage: "subString"
         }
     },
     source: {
@@ -291,17 +265,6 @@ export const tipsValidation = {
 
 // Books validation
 export const booksValidation = {
-    username: {
-        isLength: {
-            options: {
-                min: 3
-            },
-            errorMessage: "usernameLength"
-        },
-        notEmpty: {
-            errorMessage: "usernameEmpty"
-        }
-    },
     title: {
         isLength: {
             options: {
@@ -315,21 +278,6 @@ export const booksValidation = {
         },
         isString: {
             errorMessage: "titleString"
-        }
-    },
-    sub_id: {
-        isLength: {
-            options: {
-                min: 3,
-                max: 8
-            },
-            errorMessage: "subLength"
-        },
-        notEmpty: {
-            errorMessage: "subEmpty"
-        },
-        isString: {
-            errorMessage: "subString"
         }
     },
     source: {
@@ -377,21 +325,10 @@ export const booksValidation = {
 
 // Blog validation
 export const blogValidation = {
-    username: {
-        isLength: {
-            options: {
-                min: 3
-            },
-            errorMessage: "usernameLength"
-        },
-        notEmpty: {
-            errorMessage: "usernameEmpty"
-        }
-    },
     title: {
         isLength: {
             options: {
-                min: 5,
+                min: 3,
                 max: 50
             },
             errorMessage: "titleLength"
@@ -467,21 +404,6 @@ export const staffUsernameValidation = {
 
 // Class registration validation
 export const classValidation = {
-    sub_id: {
-        isLength: {
-            options: {
-                min: 3,
-                max: 8
-            },
-            errorMessage: "subLength"
-        },
-        notEmpty: {
-            errorMessage: "subEmpty"
-        },
-        isString: {
-            errorMessage: "subString"
-        }
-    },
     title: {
         notEmpty: {
             errorMessage: "titleEmpty"
