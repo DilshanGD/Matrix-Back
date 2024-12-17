@@ -653,7 +653,7 @@ router.get("/staff/new-class-registration", async (req, res) => {    // Load sub
         const findBatch = await Models.Batch.findAll({attributes: ['batch_id']});    // Load batches
 
         return res.status(200).send({
-            streams: findSubject,
+            subjects: findSubject,
             batches: findBatch
         });
     } catch (err) {
@@ -694,8 +694,6 @@ router.get("/staff/class-view", isStaffAuth, async (req, res) => {
         // Redirect to staff dashboard
     }
 });
-
-
 
 // Update class API
 router.patch('/staff/class-update', isStaffAuth, checkSchema(classUpdateValidation), async (req, res) => {
@@ -743,11 +741,11 @@ router.patch('/staff/class-update', isStaffAuth, checkSchema(classUpdateValidati
 // Update class title api
 router.patch("/staff/new-class-title", isStaffAuth, checkSchema(classTitleValidation), async (req, res) => {
     const result = validationResult(req);
-
+    
     if(!result.isEmpty())
         return res.status(400).send({errors: result.array()});   // Validation errors
     
-    const data = matchedData(req);         
+    const data = matchedData(req);   
 
     try {                                                  // oldTitle -> current title
         if(data.newTitle !== data.oldTitle){

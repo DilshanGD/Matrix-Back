@@ -1,5 +1,7 @@
 // Backend/src/utils/staffDetailsValidation.mjs
 
+//import { isDecimal } from "validator";
+
 // Staff registration validation
 export const staffValidation = {
     username: {
@@ -616,9 +618,6 @@ export const classUpdateValidation = {
     fee: {
         notEmpty: {
             errorMessage: "feeEmpty"
-        },
-        isString: {
-            errorMessage: "feeString"
         }
     },
     startTime: {
