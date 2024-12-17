@@ -718,7 +718,7 @@ router.get("/timetable", async (req, res) => {
                 day: cls.day,
                 startTime: cls.startTime,
                 endTime: cls.endTime,
-                batch: cls.batch,
+                batch: cls.batch_id,
                 fee: cls.fee,
                 staff_full_name: staffFullName
             });

@@ -667,7 +667,7 @@ router.get("/staff/class-view", isStaffAuth, async (req, res) => {
     const username = req.user.username;
 
     try {
-        const staffClass = await Models.Staff.findAll({
+        const staffClass = await Models.Class.findAll({
             where: { username }
         });
         if (!staffClass) {
@@ -694,6 +694,8 @@ router.get("/staff/class-view", isStaffAuth, async (req, res) => {
         // Redirect to staff dashboard
     }
 });
+
+
 
 // Update class API
 router.patch('/staff/class-update', isStaffAuth, checkSchema(classUpdateValidation), async (req, res) => {
@@ -873,6 +875,65 @@ router.delete("/staff/remove-class", isStaffAuth, checkSchema(classRemoveValidat
         // Redirect to staff dashboard
     }
 });
+
+// Student top bar component api
+router.post("/staff/staff-topbar", isStaffAuth, async (req, res) => {
+    try {
+        const findStaff = await Models.Staff.findOne({
+            where: { username: req.user.username },
+            attributes: ['full_name', 'username', 'profile_pic']
+        });
+        if (!findStaff) {
+            return res.status(404).json({ message: "Staff member not found" });
+        }
+
+        const navLogo = await Models.Front_Detail.findOne({
+            where: { type: 'nav' },
+            attributes: ['file_path']
+        });
+
+        return res.status(200).json({
+            full_name: findStaff.full_name,
+            username: findStaff.username,
+            profile_pic: findStaff.profile_pic,
+            nav_logo: navLogo ? navLogo.file_path : 'default-logo.png'
+        });
+    } catch (err) {
+        console.error("Error:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+// View own class api
+router.get("/staff/timetable", isStaffAuth, async (req, res) => {
+    const username = req.user.username;
+
+    try {
+        const staffClass = await Models.Class.findAll({
+            where: { username }
+        });
+        if (!staffClass) {
+            return res.status(404).send("Classes not found");
+            // Redirect to staff dashboard page
+        }
+
+        const cleanStaffClass = staffClass.map(({ title, type, day, startTime, endTime, batch_id }) => ({
+            title,
+            type,
+            day,
+            startTime,
+            endTime,
+            batch_id
+        }));
+        return res.status(200).json(cleanStaffClass);
+        // Redirect to staff myclass page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error fetching biography");
+        // Redirect to staff dashboard
+    }
+});
+
 
 // Remove account
 
