@@ -3,8 +3,8 @@
 import { Router } from "express";
 import { validationResult, matchedData, checkSchema } from "express-validator";
 import { batchValidation, streamValidation, subjectValidation, classValidation, adminValidation, adminLoginValidation,
-    adminUpdateValidation, adminPWDValidation, adminUsernameValidation, individualStaffValidation } from "../utils/adminDetailsValidation.mjs";
-import { staffValidation } from "../utils/staffDetailsValidation.mjs";
+    adminUpdateValidation, adminPWDValidation, adminUsernameValidation, individualStaffValidation, removeSubjectValidation, staffRegistrationValidation,
+    removeStaffValidation, streamRemoveValidation } from "../utils/adminDetailsValidation.mjs";
 import Models from "../db/models.mjs";
 import jwt from 'jsonwebtoken';
 import { isAdminAuth } from '../utils/adminMiddleware.mjs'; 
@@ -94,7 +94,7 @@ router.post("/admin/sub-registration", isAdminAuth, checkSchema(subjectValidatio
 
     const sub = data.sub_id;
     const title = data.title;
-    const streamArray = data.stream_id;
+    const stream = data.stream_id;
 
     try {
         const subExist = await Models.Subject.count({          // Find given subject is exists in Subjects table
@@ -108,13 +108,14 @@ router.post("/admin/sub-registration", isAdminAuth, checkSchema(subjectValidatio
         }
 
         // Prepare data to insert
-        const subStreams = streamArray.map(stream => ({
-            sub_id: sub,
-            stream_id: stream
-        }));
+        // const subStreams = streamArray.map(stream => ({
+        //     sub_id: sub,
+        //     stream_id: stream
+        // }));
 
         const savedSubject = await Models.Subject.create({ sub_id: sub, title: title }); // Add new stream to Subjects table
-        const savedSubStream = await Models.Stream_Subject.bulkCreate(subStreams);       // Add data to Stream_Subject table
+        //const savedSubStream = await Models.Stream_Subject.bulkCreate(subStreams);       // Add data to Stream_Subject table
+        const savedSubStream = await Models.Stream_Subject.create({ sub_id: sub, stream_id: stream });       // Add data to Stream_Subject table
         res.status(201).send(savedSubject); // redirect(admin/add-new)
     } catch (err) {
         res.status(400).send(err.message); // redirect(admin/add-sub)
@@ -258,13 +259,18 @@ router.post("/admin/class-registration", isAdminAuth, checkSchema(classValidatio
 });
 
 // New Staff registration api
-router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffValidation), async (req, res) => {
+router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffRegistrationValidation), async (req, res) => {
     const result = validationResult(req);
+    console.log(result);
+    const data = matchedData(req); 
+    
+    console.log(data);
 
     if(!result.isEmpty())
         return res.status(400).send({errors: result.array()});   // Validation errors
     
-    const data = matchedData(req);          // grabing data posted from client side.
+   // const data = matchedData(req);          // grabing data posted from client side.
+    
 
     try {
         const emailExist = await Models.Staff.count({  // Find given email is exists in staff table
@@ -283,7 +289,7 @@ router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffValidatio
             }
         });
         if(usernameExist){                                                   // checks the username is exists
-            return res.status(403).send("Already-Registered-username");               // if not exists 
+            return res.status(409).send("Already-Registered-username");               // if not exists 
             // redirect to staff registration page
         }
 
@@ -293,7 +299,7 @@ router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffValidatio
             }
         });
         if(!subExist){                                                // Checks the subject is exists
-            return res.status(403).send("Invalid-Subject");               // If not exists 
+            return res.status(409).send("Invalid-Subject");               // If not exists 
             // redirect to staff registration page
         }
           
@@ -301,8 +307,7 @@ router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffValidatio
             username: data.username,
             full_name: data.full_name,
             email: data.email,
-            sub_id: data.sub_id,
-            gender: data.gender
+            sub_id: data.sub_id
         });
 
         // Send email to the staff member with username and generic pwd="1234"
@@ -665,15 +670,398 @@ router.post("/admin/staff-individual", isAdminAuth, checkSchema(individualStaffV
 
 });
 
-// Admin dashboard
+// Student top bar component api
+router.post("/admin/admin-topbar", isAdminAuth, async (req, res) => {
+    try {
+        const findAdmin = await Models.Admin.findOne({
+            where: { username: req.user.username },
+            attributes: ['full_name', 'username', 'profile_pic']
+        });
+        if (!findAdmin) {
+            return res.status(404).json({ message: "Admin not found" });
+        }
 
-// View subjects  -> Delete button
+        const navLogo = await Models.Front_Detail.findOne({
+            where: { type: 'nav' },
+            attributes: ['file_path']
+        });
+
+        return res.status(200).json({
+            full_name: findAdmin.full_name,
+            username: findAdmin.username,
+            profile_pic: findAdmin.profile_pic,
+            nav_logo: navLogo ? navLogo.file_path : 'default-logo.png'
+        });
+    } catch (err) {
+        console.error("Error:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+// View streams api
+router.get("/admin/stream-view", isAdminAuth, async (req, res) => {
+    try {
+        const streams = await Models.Stream.findAll();
+        if (!streams) {
+            return res.status(404).send("Streams not found");
+            // Redirect to staff dashboard page
+        }
+
+        return res.status(200).json(streams);
+        // Redirect to streams page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error fetching Streams");
+        // Redirect to staff dashboard
+    }
+});
+
+// Remove stream api
+router.delete("/admin/stream-remove", isAdminAuth, checkSchema(streamRemoveValidation), async (req, res) => {
+    const result = validationResult(req);
+    
+    if(!result.isEmpty())                                       // Checks for the validation errors
+        return res.status(400).send({errors: result.array()});
+    
+    const data = matchedData(req);
+
+    try {
+        const stream = await Models.Stream.findOne({
+            where : { stream_id : data.stream_id}
+        });
+        if (!stream) {
+            return res.status(404).send("Streams not found");
+            // Redirect to admin stream page
+        }
+
+        const sub = await Models.Stream_Subject.count({
+            where: {
+                stream_id: data.stream_id
+            }
+        });
+        if (sub) {
+            return res.status(404).send("Subjects are related to this stream. Cannot remove");
+            // Redirect to admin stream page
+        }
+
+        await Models.Stream.destroy({
+            where: {
+                stream_id: data.stream_id
+            }
+        });
+
+        return res.status(200).json(stream);
+        // Redirect to streams page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error removing stream");
+        // Redirect to admin dashboard
+    }
+});
+
+// View subjects api
+router.get("/admin/subject-view", isAdminAuth, async (req, res) => {
+    try {
+        const subjects = await Models.Subject.findAll();
+        if (!subjects) {
+            return res.status(404).send("Subjects not found");
+            // Redirect to staff dashboard page
+        }
+
+        return res.status(200).json(subjects);
+        // Redirect to streams page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error fetching Subjects");
+        // Redirect to staff dashboard
+    }
+});
+
+// View batch api
+router.get("/admin/batch-view", isAdminAuth, async (req, res) => {
+    try {
+        const batches = await Models.Batch.findAll();
+        if (!batches) {
+            return res.status(404).send("Batches not found");
+            // Redirect to staff dashboard page
+        }
+
+        return res.status(200).json(batches);
+        // Redirect to streams page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error fetching Batches");
+        // Redirect to staff dashboard
+    }
+});
+
+// Remove batch api
+router.delete("/admin/batch-remove", isAdminAuth, checkSchema(batchValidation), async (req, res) => {
+    const result = validationResult(req);
+    
+    if(!result.isEmpty())                                       // Checks for the validation errors
+        return res.status(400).send({errors: result.array()});
+    
+    const data = matchedData(req);
+
+    try {
+        const batches = await Models.Batch.findOne({
+            where : { batch_id : data.batch_id}
+        });
+        if (!batches) {
+            return res.status(404).send("Batches not found");
+            // Redirect to staff dashboard page
+        }
+
+        await Models.Batch.destroy({
+            where: {
+                batch_id: data.batch_id
+            }
+        });
+
+        await Models.Class.destroy({
+            where: {
+                batch_id: data.batch_id
+            }
+        });
+
+        return res.status(200).json(batches);
+        // Redirect to streams page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error fetching Batches");
+        // Redirect to staff dashboard
+    }
+});
+
+// router.delete("/admin/subject-remove", isAdminAuth, checkSchema(removeSubjectValidation), async (req, res) => {
+//     const result = validationResult(req);
+    
+//     if(!result.isEmpty())                                       // Checks for the validation errors
+//         return res.status(400).send({errors: result.array()});
+    
+//     const data = matchedData(req);
+
+//     try {
+//         const subject = await Models.Subject.findOne({
+//             where : { sub_id : data.sub_id}
+//         });
+//         if (!subject) {
+//             return res.status(404).send("Subject not found");
+//             // Redirect to staff dashboard page
+//         }
+
+//         const classes = await Models.Class.findAll({
+//             where: { sub_id: data.sub_id }
+//         });
+
+//         const subClass = classes.map(clz => clz.classTitle);
+
+//         await Models.Class.destroy({
+//             where: { classTitle: subClass }
+//         });
+
+//         const staffs = await Models.Staff.findAll({
+//             where: { sub_id: data.sub_id }
+//         });
+
+//         const staff = staffs.map(stf => stf.username);
+
+//         await Models.Staff.destroy({
+//             where: { sub_id: data.sub_id }
+//         });
+
+//         await Models.Staff_Qualification.destroy({
+//             where: {
+//                 username: staff
+//             }
+//         });
+
+//         await Models.Blog.destroy({
+//             where: {
+//                 username: staff
+//             }
+//         });
+
+//         await Models.Book.destroy({
+//             where: {
+//                 username: staff
+//             }
+//         });
+
+//         await Models.Tips.destroy({
+//             where: {
+//                 username: staff
+//             }
+//         });
+
+//         await Models.Subject.destroy({
+//             where: {
+//                 sub_id: data.sub_id
+//             }
+//         });
+
+//         return res.status(200).json(batches);
+//         // Redirect to streams page
+//     } catch (err) {
+//         console.error("Error is:", err);
+//         return res.status(500).send("Error Removing Subject");
+//         // Redirect to staff dashboard
+//     }
+// });
+// Remove subject api
+router.delete("/admin/subject-remove", isAdminAuth, checkSchema(removeSubjectValidation), async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) // Validation errors
+        return res.status(400).send({ errors: result.array() });
+
+    const data = matchedData(req);
+
+    try {
+        // Check if the subject exists
+        const subject = await Models.Subject.findOne({
+            where: { sub_id: data.sub_id },
+        });
+
+        if (!subject) {
+            return res.status(404).send("Subject not found");
+        }
+
+        // Get all related classes
+        const classes = await Models.Class.findAll({
+            where: { sub_id: data.sub_id },
+            attributes: ["title"],
+        });
+        const classTitles = classes.map((clz) => clz.title);
+
+        // Delete all related classes
+        if (classTitles.length > 0) {
+            await Models.Class.destroy({
+                where: { title: { [Op.in]: classTitles } },
+            });
+        }
+
+        // Get all related staff
+        const staffs = await Models.Staff.findAll({
+            where: { sub_id: data.sub_id },
+            attributes: ["username"],
+        });
+        const staffUsernames = staffs.map((stf) => stf.username);
+
+        // Delete related staff records and their qualifications, blogs, books, and tips
+        if (staffUsernames.length > 0) {
+            await Models.Staff_Qualification.destroy({
+                where: { username: { username: data.username } },
+            });
+
+            await Models.Blog.destroy({
+                where: { username: { username: data.username } },
+            });
+
+            await Models.Book.destroy({
+                where: { username: { username: data.username } },
+            });
+
+            await Models.Tip.destroy({
+                where: { username: { username: data.username } },
+            });
+
+            await Models.Staff.destroy({
+                where: { username: { username: data.username } },
+            });
+        }
+
+        // Finally, delete the subject
+        await Models.Subject.destroy({
+            where: { sub_id: data.sub_id },
+        });
+
+        return res.status(200).send("Subject and related data removed successfully");
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error Removing Subject");
+    }
+});
+
+// Remove staff api
+router.delete("/admin/staff-remove", isAdminAuth, checkSchema(removeStaffValidation), async (req, res) => {
+    const result = validationResult(req);
+    
+    if (!result.isEmpty()) // Validation errors
+        return res.status(400).send({ errors: result.array() });
+
+    const data = matchedData(req);
+    console.log(data);
+    try {
+        // Check if the staff exists
+        const staff = await Models.Staff.findOne({
+            where: { username: data.username }, // Correct column name
+        });
+         
+        if (!staff) {
+            return res.status(405).send("Staff not found");
+        }
+
+        // Delete associated data for the staff
+        await Models.Staff_Qualification.destroy({
+            where: { username: data.username },
+        });
+
+        await Models.Blog.destroy({
+            where: { username: data.username },
+        });
+
+        await Models.Book.destroy({
+            where: { username: data.username },
+        });
+
+        await Models.Tip.destroy({
+            where: { username: data.username },
+        });
+
+        await Models.Staff.destroy({
+            where: { username: data.username },
+        });
+
+        return res.status(200).send("Staff member and related data removed successfully");
+
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error Removing Staff");
+    }
+});
+
+// View timetable api
+router.get("/admin/timetable", isAdminAuth, async (req, res) => {
+    const username = req.user.username;
+
+    try {
+        const staffClass = await Models.Class.findAll();
+        if (!staffClass) {
+            return res.status(404).send("Classes not found");
+            // Redirect to staff dashboard page
+        }
+
+        const cleanStaffClass = staffClass.map(({ title, type, day, startTime, endTime, batch_id }) => ({
+            title,
+            type,
+            day,
+            startTime,
+            endTime,
+            batch_id
+        }));
+        return res.status(200).json(cleanStaffClass);
+        // Redirect to staff myclass page
+    } catch (err) {
+        console.error("Error is:", err);
+        return res.status(500).send("Error fetching Timetable");
+        // Redirect to staff dashboard
+    }
+});
 
 // View streams  -> Delete button
 
-// View batch -> Delete button
-
-// Remove staff
 
 
 

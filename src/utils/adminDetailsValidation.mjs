@@ -17,6 +17,46 @@ export const batchValidation = {
     }
 };
 
+// Remove staff validation
+export const removeStaffValidation = {
+    username: {
+        notEmpty: {
+            errorMessage: "staffEmpty"
+        },
+        isString: {
+            errorMessage: "staffString"
+        }
+    }
+};
+
+// Remove staff validation
+export const streamRemoveValidation = {
+    stream_id: {
+        isLength: {
+            options: {
+                min: 3,
+                max: 3
+            },
+            errorMessage: "streamLength"
+        },
+        notEmpty: {
+            errorMessage: "streamEmpty"
+        },
+        isString: {
+            errorMessage: "streamString"
+        }
+    }
+};
+// Remove subject validation
+export const removeSubjectValidation = {
+    sub_id: {
+        notEmpty: {
+            errorMessage: "subEmpty"
+        }
+    }
+};
+
+
 // Stream registration validation
 export const streamValidation = {
     stream_id: {
@@ -331,6 +371,56 @@ export const individualStaffValidation = {
         },
         notEmpty: {
             errorMessage: "usernameEmpty"
+        }
+    }
+};
+
+// Staff registration validation
+export const staffRegistrationValidation = {
+    username: {
+        isLength: {
+            options: {
+                min: 3
+            },
+            errorMessage: "usernameLength"
+        },
+        notEmpty: {
+            errorMessage: "usernameEmpty"
+        }
+    },
+    full_name: {
+        isLength: {
+            options: {
+                min: 5,
+                max: 32
+            },
+            errorMessage: "nameLength"
+        },
+        notEmpty: {
+            errorMessage: "nameEmpty"
+        },
+        isString: {
+            errorMessage: "nameString"
+        }
+    },
+    email: {
+        isEmail: {
+            errorMessage: "isEmail"
+        },
+        notEmpty: {
+            errorMessage: "emailEmpty"
+        }
+    },
+    sub_id: {
+        isLength: {
+            options: {
+                min: 3,
+                max: 8
+            },
+            errorMessage: "subLength"
+        },
+        notEmpty: {
+            errorMessage: "subEmpty"
         }
     }
 };

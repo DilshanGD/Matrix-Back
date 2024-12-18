@@ -18,14 +18,9 @@ export function createApp() {
         next()
     })
 
-    // CORS configuration to allow credentials
-    // app.use(cors({
-    //     origin: 'http://localhost:3000',  // Your frontend URL
-    //     credentials: true,                // Allow cookies/session to be sent
-    // }));
     app.use(cors({
-          //origin: 'http://localhost:3000', // Allow requests from your frontend
-          origin: 'https://matrix-online-institute-sl.netlify.app', // Allow requests from your frontend
+          origin: 'http://localhost:3000', // Allow requests from your frontend
+          //origin: 'https://matrix-online-institute-sl.netlify.app', // Allow requests from your frontend
           methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'], // Specify allowed methods
           //allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
           credentials: true, // Enable credentials (cookies, session)

@@ -116,7 +116,8 @@ const Staff = db.define('Staffs', {
     },
     gender: {
         type: Sequelize.DataTypes.STRING,
-        allowNull: false
+        allowNull: true,
+        defaultValue: "Male"
     },
     pwd: {
         type: Sequelize.DataTypes.STRING,

@@ -748,51 +748,51 @@ router.delete("/staff/remove-class", isStaffAuth, checkSchema(classRemoveValidat
             // Redirect to staff dashboard page
         }
 
-        await Models.Student_Class.destroy({
-            where: {
-                title: data.title
-            }
-        });
+        // await Models.Student_Class.destroy({
+        //     where: {
+        //         title: data.title
+        //     }
+        // });
 
-        const contents = await Models.Content.findAll({
-            where: { classTitle: data.title }
-        });
+        // const contents = await Models.Content.findAll({
+        //     where: { classTitle: data.title }
+        // });
 
-        const contentIds = contents.map(content => content.content_id);
+        // const contentIds = contents.map(content => content.content_id);
 
-        const assignments = await Models.Content.findAll({
-            where: { classTitle: data.title }
-        });
+        // const assignments = await Models.Content.findAll({
+        //     where: { classTitle: data.title }
+        // });
 
-        const assignmentIds = assignments.map(assignment => assignment.content_id);
+        // const assignmentIds = assignments.map(assignment => assignment.content_id);
 
-        const topics = await Models.Content.findAll({
-            where: { classTitle: data.title }
-        });
+        // const topics = await Models.Content.findAll({
+        //     where: { classTitle: data.title }
+        // });
 
-        const topicIds = topics.map(topic => topic.content_id);
+        // const topicIds = topics.map(topic => topic.content_id);
 
-        await Models.Topic.destroy({
-            where: { content_id: contentIds }
-        });
+        // await Models.Topic.destroy({
+        //     where: { content_id: contentIds }
+        // });
 
-        await Models.Assignment.destroy({
-            where: { content_id: contentIds }
-        });
+        // await Models.Assignment.destroy({
+        //     where: { content_id: contentIds }
+        // });
 
-        await Models.Topic_File.destroy({
-            where: { topic_id: topicIds }
-        });
+        // await Models.Topic_File.destroy({
+        //     where: { topic_id: topicIds }
+        // });
 
-        await Models.Answer.destroy({
-            where: { ass_id: assignmentIds }
-        });
+        // await Models.Answer.destroy({
+        //     where: { ass_id: assignmentIds }
+        // });
 
-        await Models.Content.destroy({
-            where: {
-                classTitle: data.title
-            }
-        });
+        // await Models.Content.destroy({
+        //     where: {
+        //         classTitle: data.title
+        //     }
+        // });
 
         const removedClass = await Models.Class.destroy({
             where: { 
@@ -838,7 +838,7 @@ router.post("/staff/staff-topbar", isStaffAuth, async (req, res) => {
     }
 });
 
-// View own class api
+// View timetable api
 router.get("/staff/timetable", isStaffAuth, async (req, res) => {
     const username = req.user.username;
 
