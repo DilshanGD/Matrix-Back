@@ -3,8 +3,9 @@
 import { createApp } from "./createApp.mjs";
 import 'dotenv/config';
 import db from './db/index.mjs';
-//import mongoose from "mongoose";
 //import cors from "cors";
+
+import './utils/superUser.mjs';
 
 db.authenticate()
     .then(() => console.log("Connected to the postgres database LMS"))

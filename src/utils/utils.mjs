@@ -1,5 +1,6 @@
 // Backend/src/utils/utils.mjs
 
+
 export function addLeadingZeros(number, length) {             // adding leading zeros to create student id
     return String(number).padStart(length, '0');
 };
@@ -25,3 +26,5 @@ export function extractBookId(bookId, sub) {                  // Extract the num
     const match = bookId.match(regex);                
     return match ? parseInt(match[1], 10) : 0;        
 };
+
+
