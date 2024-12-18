@@ -9,7 +9,6 @@ import Models from "../db/models.mjs";
 import jwt from 'jsonwebtoken';
 import { isAdminAuth } from '../utils/adminMiddleware.mjs'; 
 import { Op } from 'sequelize';
-//import { isAuth } from "../utils/middleware.mjs";    // Authentication middleware
 
 const router = Router();
 
