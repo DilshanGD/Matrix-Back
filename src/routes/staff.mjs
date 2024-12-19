@@ -11,12 +11,49 @@ import jwt from 'jsonwebtoken';
 import { isStaffAuth } from '../utils/staffMiddleware.mjs'; 
 import { Op } from 'sequelize';
 import validator from 'validator';
+import bcrypt from 'bcrypt';
 //import { tipsValidation } from "../utils/adminDetailsValidation.mjs";
 //import { isAuth } from "../utils/middleware.mjs";    // Authentication middleware
 
 const router = Router();
 
 // Staff login API
+// router.post("/staff/staff-login", checkSchema(staffLoginValidation), async (req, res) => {
+//     const result = validationResult(req);
+
+//     if(!result.isEmpty())                                       // Checks for the validation errors
+//         return res.status(400).send({errors: result.array()});
+
+//     const data = matchedData(req);
+
+//     try {
+//         const findStaff = await Models.Staff.findOne({ where: { email: data.email }});   // Search staff member with the requested api
+        
+//         if(!findStaff)                             // Checks requested is found or not
+//             return res.status(404).send("Unregistered Staff Member");
+            
+//         if(findStaff.pwd !== data.pwd)             // Checks password for the login request
+//             return res.status(404).send("Invalid Password");
+
+//         const token = jwt.sign(
+//             {username: findStaff.username, full_name: findStaff.full_name, profile_pic: findStaff.profile_pic, type: "staff", sub_id: findStaff.sub_id },
+//             process.env.JWT_SECRET,
+//             {expiresIn: "1h"}
+//         );
+
+//         return res.cookie("accessToken", token, {
+//             httpOnly: true,
+//             secure: true,            // Ensure cookies are only sent over HTTPS
+//             sameSite: 'none',        // Cross-origin cookie
+//             maxAge: 60 * 60 * 1000, // 1 day
+//           }).status(200).json({ token });
+//         //return res.redirect("/staff/staff-dashboard");                     // Forward to student dashboard
+//     } catch(err) {
+//         return res.status(400).json({ message: err.message });
+//         //return res.redirect("/staff/staff-login");                     // Forward to same student login page with msg of error
+//     }
+// });
+
 router.post("/staff/staff-login", checkSchema(staffLoginValidation), async (req, res) => {
     const result = validationResult(req);
 
@@ -30,8 +67,10 @@ router.post("/staff/staff-login", checkSchema(staffLoginValidation), async (req,
         
         if(!findStaff)                             // Checks requested is found or not
             return res.status(404).send("Unregistered Staff Member");
-            
-        if(findStaff.pwd !== data.pwd)             // Checks password for the login request
+       
+        const isPasswordValid = await bcrypt.compare(data.pwd, findStaff.pwd);
+
+        if(!isPasswordValid)             // Checks password for the login request
             return res.status(404).send("Invalid Password");
 
         const token = jwt.sign(
@@ -45,13 +84,14 @@ router.post("/staff/staff-login", checkSchema(staffLoginValidation), async (req,
             secure: true,            // Ensure cookies are only sent over HTTPS
             sameSite: 'none',        // Cross-origin cookie
             maxAge: 60 * 60 * 1000, // 1 day
-          }).status(200).json({ token });
+        }).status(200).json({ token });
         //return res.redirect("/staff/staff-dashboard");                     // Forward to student dashboard
     } catch(err) {
         return res.status(400).json({ message: err.message });
         //return res.redirect("/staff/staff-login");                     // Forward to same student login page with msg of error
     }
 });
+
 
 // Staff logout api
 router.post("/staff/logout", async(req, res) => {
@@ -177,27 +217,55 @@ router.get("/staff/staff-profile", isStaffAuth, async (req, res) => {
 
 
 // Update staff password api
+// router.patch("/staff/new-password", isStaffAuth, checkSchema(staffPWDValidation), async (req, res) => {
+//     const result = validationResult(req);
+
+//     if(!result.isEmpty())
+//         return res.status(400).send({errors: result.array()});   // Validation errors
+    
+//     const data = matchedData(req);          // grabing data posted from client side.
+
+//     try {
+//         // Update student details
+//         await Models.Staff.update({
+//             pwd: data.pwd
+//         },{
+//             where: {
+//                 username: req.user.username
+//             },
+//             returning: true  // This will returned the updated record
+//         });
+        
+//         return res.status(201).send("Password Updated Successfully.");
+//         // redirect admin profile view page
+//     } catch(err) {
+//         console.log(`Error is: ${err.message}`);     // Mostly catch duplicate key error(Validation error of table)
+//         return res.status(500).send({error: err.message});      
+//     }
+// });
 router.patch("/staff/new-password", isStaffAuth, checkSchema(staffPWDValidation), async (req, res) => {
     const result = validationResult(req);
 
     if(!result.isEmpty())
         return res.status(400).send({errors: result.array()});   // Validation errors
     
-    const data = matchedData(req);          // grabing data posted from client side.
+    const data = matchedData(req);          // grabbing data posted from client side.
 
     try {
-        // Update student details
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(data.pwd, 10);
+
+        // Update staff details
         await Models.Staff.update({
-            pwd: data.pwd
+            pwd: hashedPassword
         },{
             where: {
                 username: req.user.username
             },
-            returning: true  // This will returned the updated record
+            returning: true  // This will return the updated record
         });
-        
+
         return res.status(201).send("Password Updated Successfully.");
-        // redirect admin profile view page
     } catch(err) {
         console.log(`Error is: ${err.message}`);     // Mostly catch duplicate key error(Validation error of table)
         return res.status(500).send({error: err.message});      

@@ -9,6 +9,7 @@ import Models from "../db/models.mjs";
 import jwt from 'jsonwebtoken';
 import { isAdminAuth } from '../utils/adminMiddleware.mjs'; 
 import { Op } from 'sequelize';
+import bcrypt from 'bcrypt';
 
 const router = Router();
 
@@ -261,7 +262,7 @@ router.post("/admin/class-registration", isAdminAuth, checkSchema(classValidatio
 // New Staff registration api
 router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffRegistrationValidation), async (req, res) => {
     const result = validationResult(req);
-    console.log(result);
+
     const data = matchedData(req); 
     
     console.log(data);
@@ -302,12 +303,15 @@ router.post("/admin/staff-registration", isAdminAuth, checkSchema(staffRegistrat
             return res.status(409).send("Invalid-Subject");               // If not exists 
             // redirect to staff registration page
         }
+
+        const hashedPassword = await bcrypt.hash("12345678", 10);
           
         const savedStaff = await Models.Staff.create({       // Insert into Staff table
             username: data.username,
             full_name: data.full_name,
             email: data.email,
-            sub_id: data.sub_id
+            sub_id: data.sub_id,
+            pwd: hashedPassword
         });
 
         // Send email to the staff member with username and generic pwd="1234"
@@ -370,7 +374,43 @@ router.post("/admin/admin-registration", isAdminAuth, checkSchema(adminValidatio
     }
 });
 
-// Admin login api
+// // Admin login api
+// router.post("/admin/admin-login", checkSchema(adminLoginValidation), async (req, res) => {
+//     const result = validationResult(req);
+
+//     if(!result.isEmpty())                                       // Checks for the validation errors
+//         return res.status(400).send({errors: result.array()});
+
+//     const data = matchedData(req);
+
+//     try {
+//         const findAdmin = await Models.Admin.findOne({ where: { email: data.email }});   // Search admin with the requested api
+        
+//         if(!findAdmin)                             // Checks requested is found or not
+//             return res.status(404).send("Unregistered Admin");
+            
+//         if(findAdmin.pwd !== data.pwd)             // Checks password for the login request
+//             return res.status(404).send("Invalid Password");
+
+//         const token = jwt.sign(
+//             {username: findAdmin.username, full_name: findAdmin.full_name, profile_pic: findAdmin.profile_pic, type: "admin" },
+//             process.env.JWT_SECRET,
+//             {expiresIn: "1h"}
+//         );
+
+//         return res.cookie("accessToken", token, {
+//             httpOnly: true,
+//             secure: true,            // Ensure cookies are only sent over HTTPS
+//             sameSite: 'none',        // Cross-origin cookie
+//             maxAge: 60 * 60 * 1000, // 1 day
+//           }).status(200).json({ token });
+//         //return res.redirect("/admin/admin-dashboard");                     // Forward to student dashboard
+//     } catch(err) {
+//         return res.status(400).json({ message: err.message });
+//         //return res.redirect("/admin/admin-login");                     // Forward to same student login page with msg of error
+//     }
+// })
+// Admin login API
 router.post("/admin/admin-login", checkSchema(adminLoginValidation), async (req, res) => {
     const result = validationResult(req);
 
@@ -380,12 +420,15 @@ router.post("/admin/admin-login", checkSchema(adminLoginValidation), async (req,
     const data = matchedData(req);
 
     try {
-        const findAdmin = await Models.Admin.findOne({ where: { email: data.email }});   // Search admin with the requested api
-        
-        if(!findAdmin)                             // Checks requested is found or not
+        const findAdmin = await Models.Admin.findOne({ where: { email: data.email }});   // Search admin with the requested API
+
+        if(!findAdmin)                             // Checks if the requested admin is found or not
             return res.status(404).send("Unregistered Admin");
-            
-        if(findAdmin.pwd !== data.pwd)             // Checks password for the login request
+
+        // Compare hashed passwords
+        const isPasswordValid = await bcrypt.compare(data.pwd, findAdmin.pwd);
+
+        if(!isPasswordValid)                      // Checks password for the login request
             return res.status(404).send("Invalid Password");
 
         const token = jwt.sign(
@@ -399,13 +442,13 @@ router.post("/admin/admin-login", checkSchema(adminLoginValidation), async (req,
             secure: true,            // Ensure cookies are only sent over HTTPS
             sameSite: 'none',        // Cross-origin cookie
             maxAge: 60 * 60 * 1000, // 1 day
-          }).status(200).json({ token });
-        //return res.redirect("/admin/admin-dashboard");                     // Forward to student dashboard
+        }).status(200).json({ token });
+
     } catch(err) {
         return res.status(400).json({ message: err.message });
-        //return res.redirect("/admin/admin-login");                     // Forward to same student login page with msg of error
     }
-})
+});
+
 
 // Admin logout api
 router.post("/admin/logout", async(req, res) => {

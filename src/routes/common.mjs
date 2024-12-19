@@ -4,7 +4,6 @@ import { Router } from "express";
 import Models from "../db/models.mjs";
 import { validationResult, matchedData, checkSchema } from "express-validator";
 import { individualStaffValidation } from "../utils/commonDetailsValidation.mjs";
-//import { isAuth } from "../utils/middleware.mjs";    // Authentication middleware
 
 const router = Router();
 
@@ -61,8 +60,8 @@ router.get("/", async (req, res) => {
         
         const [classCount, staffCount, studentCount] = await Promise.all([  // Find no.of Class,Staff members and Students
             Models.Class.count(),
-            Models.Staff.count(),
-            Models.Student.count()
+            Models.Staff.count()
+            // Models.Student.count()
         ]);
 
         return res.status(200).send({
@@ -72,7 +71,7 @@ router.get("/", async (req, res) => {
             statistics: {
                 totalClasses: classCount,
                 totalStaff: staffCount,
-                totalStudents: studentCount
+                // totalStudents: studentCount
             }
         });
     } catch (err) {
