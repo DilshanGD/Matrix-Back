@@ -394,11 +394,11 @@ router.post("/admin/admin-login", checkSchema(adminLoginValidation), async (req,
             {expiresIn: "1h"}
         );
 
-        return res.cookie("accessToken", token,  {
+        return res.cookie("accessToken", token, {
             httpOnly: true,
             secure: true,            // Ensure cookies are only sent over HTTPS
             sameSite: 'none',        // Cross-origin cookie
-            maxAge: 24 * 60 * 60 * 1000, // 1 day
+            maxAge: 60 * 60 * 1000, // 1 day
           }).status(200).json({ token });
         //return res.redirect("/admin/admin-dashboard");                     // Forward to student dashboard
     } catch(err) {
