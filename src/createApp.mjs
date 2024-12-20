@@ -13,6 +13,8 @@ import bodyParser from 'body-parser';
 export function createApp() {
     const app = express();
 
+    app.use(bodyParser.json({ limit: '10mb' })); // Increase the limit to your needs
+
     app.use((req, res, next) => {
         res.header("Access-Control-Allow-Credentials", true);
         next()

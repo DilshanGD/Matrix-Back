@@ -12,6 +12,8 @@ import { isStaffAuth } from '../utils/staffMiddleware.mjs';
 import { Op } from 'sequelize';
 import validator from 'validator';
 import bcrypt from 'bcrypt';
+import { uploadImage } from './uploadImage.mjs';
+
 //import { tipsValidation } from "../utils/adminDetailsValidation.mjs";
 //import { isAuth } from "../utils/middleware.mjs";    // Authentication middleware
 
@@ -122,6 +124,18 @@ router.patch("/staff/staff-profile-update", isStaffAuth, checkSchema(staffUpdate
                 return res.status(409).send("Already-Registered-email");
             }
         }
+
+        //console.log(data.profile_pic);
+        console.log(req.user.username);
+        console.log(data.full_name);
+        console.log(data.profile_pic);
+
+        if (data.profile_pic) {
+            const imageUrl = await uploadImage(data.profile_pic);
+            data.profile_pic = imageUrl; // Update the profile_pic field with the uploaded image URL
+        }
+
+        console.log(data.profile_pic);
 
         // Updates staff profile
         const [affectedRows, [savedStaff]] = await Models.Staff.update({
